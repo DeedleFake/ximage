@@ -20,7 +20,7 @@ var defaultLibraryPaths = []string{
 }
 
 func libraryPaths() []string {
-	if v, ok := os.LookupEnv("XCURSUR_PATH"); ok {
+	if v, ok := os.LookupEnv("XCURSOR_PATH"); ok {
 		return filepath.SplitList(v)
 	}
 
@@ -31,13 +31,20 @@ func libraryPaths() []string {
 	return append([]string{filepath.Join(v, "icons")}, defaultLibraryPaths...)
 }
 
+// Theme is an Xcursor theme.
 type Theme struct {
-	Name string
-	// TODO: Add size support.
+	Name    string
 	Cursors map[string]*Cursor
 }
 
+// LoadTheme loads the named theme from the system search paths. It
+// resepects the $XURSOR_PATH and $XDG_DATA_HOME environment variables
+// when looking. If the theme has an index.theme file and that file
+// lists other themes to inherit from, those themes are also loaded
+// and their cursors are added to the returned theme.
 func LoadTheme(name string) (*Theme, error) {
+	// TODO: Add size support.
+
 	if name == "" {
 		name = "default"
 	}
@@ -49,6 +56,9 @@ func LoadTheme(name string) (*Theme, error) {
 	return &c, c.load(name)
 }
 
+// LoadThemeFromDir loads a theme from the directory at path, ignoring
+// the system search path completely. The returned theme's name is the
+// basename of the given path.
 func LoadThemeFromDir(path string) (*Theme, error) {
 	c := Theme{
 		Name:    filepath.Base(path),
@@ -69,7 +79,7 @@ func (t *Theme) load(theme string) error {
 		}
 
 		inherits, err := loadInherits(filepath.Join(path, theme, "index.theme"))
-		if err != nil {
+		if (err != nil) && !errors.Is(err, fs.ErrNotExist) {
 			return fmt.Errorf("load inherited themes: %w", err)
 		}
 		for _, theme := range inherits {

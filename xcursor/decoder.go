@@ -56,11 +56,13 @@ const (
 	fileMagic = 0x72756358 // ASCII "Xcur"
 )
 
+// Cursor contains information decoded from a Xcursor file.
 type Cursor struct {
 	Comments []*Comment
 	Images   []*Image
 }
 
+// Comment is a comment section of an Xcursor file.
 type Comment struct {
 	Subtype CommentSubtype
 	Comment string
@@ -79,6 +81,7 @@ const (
 	tocTypeImage   = 0xfffd0002
 )
 
+// Image is an image section of an Xcursor file.
 type Image struct {
 	NominalSize int
 	Delay       time.Duration
@@ -93,6 +96,7 @@ type decoder struct {
 	err error
 }
 
+// DecodeFile decodes the Xcursor file at path.
 func DecodeFile(path string) (*Cursor, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -103,6 +107,7 @@ func DecodeFile(path string) (*Cursor, error) {
 	return Decode(file)
 }
 
+// Decode decodes an Xcursor file from r.
 func Decode(r io.Reader) (*Cursor, error) {
 	d := decoder{
 		r:  r,
