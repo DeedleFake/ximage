@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"deedles.dev/wl/shm/shmimage"
+	"deedles.dev/ximage/format"
 )
 
 var defaultLibraryPaths = []string{
@@ -59,7 +59,7 @@ type Image struct {
 	XHot        int
 	YHot        int
 	Delay       time.Duration
-	Image       *shmimage.ARGB8888
+	Image       *format.Image
 }
 
 type Theme struct {
