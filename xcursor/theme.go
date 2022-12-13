@@ -32,19 +32,18 @@ func libraryPaths() []string {
 }
 
 type Theme struct {
-	Name    string
-	Size    int
+	Name string
+	// TODO: Add size support.
 	Cursors map[string]*Cursor
 }
 
-func LoadTheme(name string, size int) (*Theme, error) {
+func LoadTheme(name string) (*Theme, error) {
 	if name == "" {
 		name = "default"
 	}
 
 	c := Theme{
 		Name:    name,
-		Size:    size, // TODO: Handle sizes.
 		Cursors: make(map[string]*Cursor),
 	}
 	return &c, c.load(name)
