@@ -6,6 +6,8 @@ import (
 	"image/color"
 )
 
+// Format is a pixel format for a FormatImage and related types. This
+// package contains several predefined formats, such as [ARGB8888].
 type Format interface {
 	// Size returns the number of bytes per pixel.
 	Size() int
@@ -18,6 +20,7 @@ type Format interface {
 	Write(buf []byte, r, g, b, a uint32)
 }
 
+// Various predefined Formats.
 var (
 	ARGB8888 formatARGB8888
 	XRGB8888 formatXRGB8888
@@ -69,6 +72,7 @@ func (formatXRGB8888) Write(buf []byte, r, g, b, a uint32) {
 	binary.LittleEndian.PutUint32(buf, r|g|b|a)
 }
 
+// FormatModel implements color.Model using a Format.
 type FormatModel struct {
 	Format Format
 }
@@ -80,13 +84,22 @@ func (m FormatModel) Convert(c color.Color) color.Color {
 	return &fc
 }
 
+// FormatColor implements color.Color using a Format.
 type FormatColor struct {
 	Format Format
-	Data   [8]byte
+
+	// Data contains the pixel data for the color. Only some bytes of
+	// the array are used, dependant on the return value of Format.Size.
+	Data [8]byte
 }
 
+// Slice returns a slice of Data correctly sized for the color's format.
 func (c *FormatColor) Slice() []byte {
 	size := c.Format.Size()
+	return c.slice(size)
+}
+
+func (c *FormatColor) slice(size int) []byte {
 	return c.Data[:size:size]
 }
 
@@ -94,6 +107,7 @@ func (c *FormatColor) RGBA() (r, g, b, a uint32) {
 	return c.Format.Read(c.Slice())
 }
 
+// FormatImage is an image with a color format defined by Format.
 type FormatImage struct {
 	Format Format
 	Rect   image.Rectangle
@@ -114,7 +128,7 @@ func (img *FormatImage) At(x, y int) color.Color {
 
 	i := img.pixOffset(x, y, img.stride(size), size)
 	s := img.Pix[i : i+size : i+size]
-	copy(c.Slice(), s)
+	copy(c.slice(size), s)
 
 	return &c
 }
@@ -146,5 +160,5 @@ func (img *FormatImage) Set(x, y int, c color.Color) {
 	i := img.pixOffset(x, y, img.stride(size), size)
 	c1 := img.ColorModel().Convert(c).(*FormatColor)
 	s := img.Pix[i : i+size : i+size]
-	copy(s, c1.Slice())
+	copy(s, c1.slice(size))
 }
