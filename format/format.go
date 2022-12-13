@@ -40,6 +40,11 @@ func (formatARGB8888) Read(data []byte) (r, g, b, a uint32) {
 }
 
 func (formatARGB8888) Write(buf []byte, r, g, b, a uint32) {
+	if a == 0 {
+		copy(buf, []byte{0, 0, 0, 0})
+		return
+	}
+
 	r = (r * 0xFF / a) << 16
 	g = (g * 0xFF / a) << 8
 	b = b * 0xFF / a
