@@ -49,6 +49,14 @@ func LoadTheme(name string) (*Theme, error) {
 	return &c, c.load(name)
 }
 
+func LoadThemeFromDir(path string) (*Theme, error) {
+	c := Theme{
+		Name:    filepath.Base(path),
+		Cursors: make(map[string]*Cursor),
+	}
+	return &c, c.loadDir(path)
+}
+
 func (t *Theme) load(theme string) error {
 	for _, path := range libraryPaths() {
 		dir := filepath.Join(path, theme, "cursors")
