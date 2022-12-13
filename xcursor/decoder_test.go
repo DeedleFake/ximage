@@ -23,4 +23,16 @@ func TestDecode(t *testing.T) {
 	xcimg := xc.Images[0].Image
 	bounds := xcimg.Bounds()
 	require.Equal(t, bounds, png.Bounds())
+
+	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			xr, xg, xb, xa := xcimg.At(x, y).RGBA()
+			pr, pg, pb, pa := png.At(x, y).RGBA()
+
+			require.Equal(t, xr, pr)
+			require.Equal(t, xg, pg)
+			require.Equal(t, xb, pb)
+			require.Equal(t, xa, pa)
+		}
+	}
 }
