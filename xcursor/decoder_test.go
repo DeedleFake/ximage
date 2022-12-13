@@ -18,8 +18,10 @@ func TestDecode(t *testing.T) {
 	png, _, err := image.Decode(pngFile)
 	require.Nil(t, err)
 
-	xc, err := xcursor.DecodeFile("testdata/left_ptr")
+	theme, err := xcursor.LoadThemeFromDir("testdata")
 	require.Nil(t, err)
+	xc, ok := theme.Cursors["left_ptr"]
+	require.True(t, ok)
 	xcimg := xc.Images[0].Image
 	bounds := xcimg.Bounds()
 	require.Equal(t, bounds, png.Bounds())
