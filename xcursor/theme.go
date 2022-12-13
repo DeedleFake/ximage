@@ -8,9 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
-
-	"deedles.dev/ximage/format"
 )
 
 var defaultLibraryPaths = []string{
@@ -34,34 +31,6 @@ func libraryPaths() []string {
 	return append([]string{filepath.Join(v, "icons")}, defaultLibraryPaths...)
 }
 
-type Cursor struct {
-	Comments []*Comment
-	Frames   []*Image
-}
-
-type Comment struct {
-	Subtype CommentSubtype
-	Version uint32
-	Comment string
-}
-
-type CommentSubtype uint32
-
-const (
-	CommentSubtypeCopyright CommentSubtype = 1 + iota
-	CommentSubtypeLicense
-	CommentSubtypeOther
-)
-
-type Image struct {
-	Version     int
-	NominalSize int
-	XHot        int
-	YHot        int
-	Delay       time.Duration
-	Image       *format.Image
-}
-
 type Theme struct {
 	Name    string
 	Size    int
@@ -75,7 +44,7 @@ func LoadTheme(name string, size int) (*Theme, error) {
 
 	c := Theme{
 		Name:    name,
-		Size:    size,
+		Size:    size, // TODO: Handle sizes.
 		Cursors: make(map[string]*Cursor),
 	}
 	return &c, c.load(name)
@@ -124,7 +93,7 @@ func (t *Theme) loadDir(path string) error {
 		}
 
 		entpath := filepath.Join(path, ent.Name())
-		cur, err := DecodeFile(entpath, t.Size)
+		cur, err := DecodeFile(entpath)
 		if err != nil {
 			if errors.Is(err, ErrBadMagic) {
 				continue
