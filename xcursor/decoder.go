@@ -1,4 +1,4 @@
-package cursor
+package xcursor
 
 import (
 	"bufio"
@@ -180,9 +180,7 @@ func (d *decoder) comment(toc fileToc) *Comment {
 	var buf strings.Builder
 	buf.Grow(int(length))
 	_, err := io.CopyN(&buf, d, int64(length))
-	if err != nil {
-		d.throw(fmt.Errorf("copy string: %w", err))
-	}
+	d.throw(err)
 
 	return &Comment{
 		Subtype: CommentSubtype(toc.Subtype),
@@ -199,9 +197,7 @@ func (d *decoder) image(toc fileToc) *Image {
 
 	pixels := make([]byte, w*h*4)
 	_, err := io.ReadFull(d, pixels)
-	if err != nil {
-		d.throw(fmt.Errorf("read pixels: %w", err))
-	}
+	d.throw(err)
 
 	return &Image{
 		NominalSize: int(toc.Subtype),
