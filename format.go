@@ -62,7 +62,8 @@ type FormatColor struct {
 }
 
 func (c *FormatColor) Slice() []byte {
-	return c.Data[:c.Format.Size()]
+	size := c.Format.Size()
+	return c.Data[:size:size]
 }
 
 func (c *FormatColor) RGBA() (r, g, b, a uint32) {
@@ -87,7 +88,7 @@ func (img *FormatImage) At(x, y int) color.Color {
 	size := img.Format.Size()
 	c := FormatColor{Format: img.Format}
 
-	i := img.PixOffset(x, y)
+	i := img.pixOffset(x, y, img.stride(size), size)
 	s := img.Pix[i : i+size : i+size]
 	copy(c.Slice(), s)
 
@@ -95,13 +96,21 @@ func (img *FormatImage) At(x, y int) color.Color {
 }
 
 func (img *FormatImage) Stride() int {
-	return img.Format.Size() * img.Rect.Dx()
+	return img.stride(img.Format.Size())
+}
+
+func (img *FormatImage) stride(size int) int {
+	return size * img.Rect.Dx()
 }
 
 func (img *FormatImage) PixOffset(x, y int) int {
+	return img.pixOffset(x, y, img.Stride(), img.Format.Size())
+}
+
+func (img *FormatImage) pixOffset(x, y, stride, size int) int {
 	x -= img.Rect.Min.X
 	y -= img.Rect.Min.Y
-	return (img.Stride() * y) + x
+	return (stride * y) + (x * size)
 }
 
 func (img *FormatImage) Set(x, y int, c color.Color) {
@@ -110,7 +119,7 @@ func (img *FormatImage) Set(x, y int, c color.Color) {
 	}
 
 	size := img.Format.Size()
-	i := img.PixOffset(x, y)
+	i := img.pixOffset(x, y, img.stride(size), size)
 	c1 := img.ColorModel().Convert(c).(*FormatColor)
 	s := img.Pix[i : i+size : i+size]
 	copy(s, c1.Slice())
