@@ -43,8 +43,6 @@ type Theme struct {
 // lists other themes to inherit from, those themes are also loaded
 // and their cursors are added to the returned theme.
 func LoadTheme(name string) (*Theme, error) {
-	// TODO: Add size support.
-
 	if name == "" {
 		name = "default"
 	}
