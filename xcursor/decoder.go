@@ -99,6 +99,9 @@ type Image struct {
 	Image       *format.Image
 }
 
+// BestSize searches the available sizes for the cursor and returns
+// the one that is closest to the target size. If two are equidistant
+// to size, the larger of the two is returned.
 func (c *Cursor) BestSize(size int) (best int) {
 	for s := range c.Images {
 		best = betterSize(size, best, s)
