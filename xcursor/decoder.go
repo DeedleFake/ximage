@@ -15,6 +15,15 @@ import (
 )
 
 func init() {
+	largest := func(c *Cursor) (largest int) {
+		for s := range c.Images {
+			if s > largest {
+				largest = s
+			}
+		}
+		return
+	}
+
 	image.RegisterFormat(
 		"xcursor",
 		"Xcur",
@@ -27,7 +36,7 @@ func init() {
 				return nil, errors.New("no images in cursor")
 			}
 
-			return cur.Images[0].Image, nil
+			return cur.Images[largest(cur)][0].Image, nil
 		},
 		func(r io.Reader) (image.Config, error) {
 			cur, err := Decode(r)
@@ -38,9 +47,10 @@ func init() {
 				return image.Config{}, errors.New("no images in cursor")
 			}
 
-			bounds := cur.Images[0].Image.Bounds()
+			largest := cur.Images[largest(cur)]
+			bounds := largest[0].Image.Bounds()
 			return image.Config{
-				ColorModel: cur.Images[0].Image.ColorModel(),
+				ColorModel: largest[0].Image.ColorModel(),
 				Width:      bounds.Dx(),
 				Height:     bounds.Dy(),
 			}, nil
@@ -59,7 +69,7 @@ const (
 // Cursor contains information decoded from a Xcursor file.
 type Cursor struct {
 	Comments []*Comment
-	Images   []*Image
+	Images   map[int][]*Image
 }
 
 // Comment is a comment section of an Xcursor file.
@@ -87,6 +97,36 @@ type Image struct {
 	Delay       time.Duration
 	Hot         image.Point
 	Image       *format.Image
+}
+
+func (c *Cursor) BestSize(size int) (best int) {
+	for s := range c.Images {
+		best = betterSize(size, best, s)
+	}
+	return best
+}
+
+func betterSize(target, a, b int) int {
+	da := dist(target, a)
+	db := dist(target, b)
+	switch {
+	case da < db:
+		return a
+	case db < da:
+		return b
+	default:
+		if a > b {
+			return a
+		}
+		return b
+	}
+}
+
+func dist(a, b int) int {
+	if a < b {
+		return b - a
+	}
+	return a - b
 }
 
 type decoder struct {
@@ -123,7 +163,9 @@ func (d *decoder) Decode() (c *Cursor, err error) {
 
 	defer d.catch(&err)
 
-	var cursor Cursor
+	cursor := Cursor{
+		Images: make(map[int][]*Image),
+	}
 
 	tocs := d.header()
 	for _, toc := range tocs {
@@ -133,7 +175,8 @@ func (d *decoder) Decode() (c *Cursor, err error) {
 		case tocTypeComment:
 			cursor.Comments = append(cursor.Comments, d.comment(toc))
 		case tocTypeImage:
-			cursor.Images = append(cursor.Images, d.image(toc))
+			img := d.image(toc)
+			cursor.Images[img.NominalSize] = append(cursor.Images[img.NominalSize], img)
 		default:
 			d.throw(fmt.Errorf("unknown TOC type: %x", toc.Type))
 		}

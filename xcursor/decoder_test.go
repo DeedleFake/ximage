@@ -22,7 +22,7 @@ func TestDecode(t *testing.T) {
 	require.Nil(t, err)
 	xc, ok := theme.Cursors["left_ptr"]
 	require.True(t, ok)
-	xcimg := xc.Images[0].Image
+	xcimg := xc.Images[xc.BestSize(24)][0].Image
 	bounds := xcimg.Bounds()
 	require.Equal(t, bounds, png.Bounds())
 
