@@ -1,3 +1,7 @@
+// Package geom provides utilities for manipulating rectangular geometry.
+//
+// It is patterned heavily after image.Rectangle and image.Point, but
+// vastly extends their capabilities.
 package geom
 
 import "golang.org/x/exp/constraints"
