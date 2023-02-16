@@ -67,17 +67,11 @@ func LoadThemeFromDir(path string) (*Theme, error) {
 
 func (t *Theme) load(theme string) error {
 	for _, path := range libraryPaths() {
-		dir := filepath.Join(path, theme, "cursors")
-		err := t.loadDir(dir)
+		inherits, err := loadInherits(filepath.Join(path, theme, "index.theme"))
 		if err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
 				continue
 			}
-			return fmt.Errorf("load dir %q: %w", dir, err)
-		}
-
-		inherits, err := loadInherits(filepath.Join(path, theme, "index.theme"))
-		if (err != nil) && !errors.Is(err, fs.ErrNotExist) {
 			return fmt.Errorf("load inherited themes: %w", err)
 		}
 		for _, theme := range inherits {
@@ -85,6 +79,12 @@ func (t *Theme) load(theme string) error {
 			if err != nil {
 				return fmt.Errorf("load inherited theme %q: %w", theme, err)
 			}
+		}
+
+		dir := filepath.Join(path, theme, "cursors")
+		err = t.loadDir(dir)
+		if (err != nil) && !errors.Is(err, fs.ErrNotExist) {
+			return fmt.Errorf("load dir %q: %w", dir, err)
 		}
 
 		break
