@@ -3,6 +3,7 @@ module deedles.dev/ximage
 go 1.23.0
 
 require (
+	deedles.dev/xiter v0.0.0-20240815221547-ba5e081b01e3
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/exp v0.0.0-20240822175202-778ce7bba035
 )

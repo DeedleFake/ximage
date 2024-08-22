@@ -8,8 +8,9 @@ import (
 	"iter"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
+
+	"deedles.dev/xiter"
 )
 
 var defaultLibraryPaths = []string{
@@ -23,7 +24,7 @@ var defaultLibraryPaths = []string{
 
 func libraryPaths() iter.Seq[string] {
 	if v, ok := os.LookupEnv("XCURSOR_PATH"); ok {
-		return slices.Values(filepath.SplitList(v))
+		return iter.Seq[string](xiter.StringSplit(v, string(filepath.ListSeparator)))
 	}
 
 	return func(yield func(string) bool) {
