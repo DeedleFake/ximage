@@ -87,7 +87,7 @@ func (t *Theme) load(theme string) error {
 			}
 			return fmt.Errorf("load inherited themes: %w", err)
 		}
-		for _, theme := range inherits {
+		for theme := range inherits {
 			err := t.load(theme)
 			if err != nil {
 				return fmt.Errorf("load inherited theme %q: %w", theme, err)
@@ -135,7 +135,7 @@ func (t *Theme) loadDir(path string) error {
 	return nil
 }
 
-func loadInherits(index string) (inherits []string, err error) {
+func loadInherits(index string) (inherits iter.Seq[string], err error) {
 	file, err := os.Open(index)
 	if err != nil {
 		return nil, err
@@ -154,11 +154,15 @@ func loadInherits(index string) (inherits []string, err error) {
 			continue
 		}
 
-		inherits = strings.FieldsFunc(after, func(c rune) bool {
-			return (c == ':') || (c == ',')
-		})
-		for i, v := range inherits {
-			inherits[i] = strings.TrimSpace(v)
+		inherits = func(yield func(string) bool) {
+			parts := xiter.StringFieldsFunc(after, func(c rune) bool {
+				return (c == ':') || (c == ',')
+			})
+			for part := range parts {
+				if !yield(strings.TrimSpace(part)) {
+					return
+				}
+			}
 		}
 
 		break
