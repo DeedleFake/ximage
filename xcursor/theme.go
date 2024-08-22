@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"iter"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -19,16 +21,26 @@ var defaultLibraryPaths = []string{
 	"/usr/X11R6/lib/X11/icons",
 }
 
-func libraryPaths() []string {
+func libraryPaths() iter.Seq[string] {
 	if v, ok := os.LookupEnv("XCURSOR_PATH"); ok {
-		return filepath.SplitList(v)
+		return slices.Values(filepath.SplitList(v))
 	}
 
-	v, ok := os.LookupEnv("XDG_DATA_HOME")
-	if !ok || !filepath.IsAbs(v) {
-		v = "~/.local/share"
+	return func(yield func(string) bool) {
+		v, ok := os.LookupEnv("XDG_DATA_HOME")
+		if !ok || !filepath.IsAbs(v) {
+			v = "~/.local/share"
+		}
+		if !yield(filepath.Join(v, "icons")) {
+			return
+		}
+
+		for _, path := range defaultLibraryPaths {
+			if !yield(path) {
+				return
+			}
+		}
 	}
-	return append([]string{filepath.Join(v, "icons")}, defaultLibraryPaths...)
 }
 
 // Theme is an Xcursor theme.
@@ -66,7 +78,7 @@ func LoadThemeFromDir(path string) (*Theme, error) {
 }
 
 func (t *Theme) load(theme string) error {
-	for _, path := range libraryPaths() {
+	for path := range libraryPaths() {
 		inherits, err := loadInherits(filepath.Join(path, theme, "index.theme"))
 		if err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
