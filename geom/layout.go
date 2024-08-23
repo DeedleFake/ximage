@@ -1,5 +1,11 @@
 package geom
 
+import (
+	"iter"
+
+	"deedles.dev/xiter"
+)
+
 // hsplit splits a rectangle into two rectangles arranged
 // horizontally.
 func hsplit[T Scalar](r Rect[T], w T) (left, right Rect[T]) {
@@ -39,12 +45,27 @@ func vsplitHalf[T Scalar](r Rect[T]) (top, bottom Rect[T]) {
 //	|    |  |  |
 //	------------
 func TileRightThenDown[T Scalar](tiles []Rect[T], r Rect[T]) {
-	tiles[0] = r
+	insertTilesFromSeq(tiles, TiledRightThenDown(len(tiles), r))
+}
 
-	split, next := hsplitHalf[T], vsplitHalf[T]
-	for i := 1; i < len(tiles); i++ {
-		tiles[i-1], tiles[i] = split(tiles[i-1])
-		split, next = next, split
+// TiledRightThenDown is the same as [TileRightThenDown] but yields
+// the successive tiles from an interator instead of inserting them
+// into a slice.
+func TiledRightThenDown[T Scalar](numtiles int, r Rect[T]) iter.Seq[Rect[T]] {
+	return func(yield func(Rect[T]) bool) {
+		split, next := hsplitHalf[T], vsplitHalf[T]
+
+		c, n := split(r)
+		for range numtiles - 1 {
+			if !yield(c) {
+				return
+			}
+
+			c, n = split(n)
+			split, next = next, split
+		}
+
+		yield(n)
 	}
 }
 
@@ -53,9 +74,25 @@ func TileRightThenDown[T Scalar](tiles []Rect[T], r Rect[T]) {
 // two-thirds the width of r and the rest are arranged vertically in
 // an even split in the remaining space.
 func TileTwoThirdsSidebar[T Scalar](tiles []Rect[T], r Rect[T]) {
-	var rem Rect[T]
-	tiles[0], rem = hsplit(r, 2*r.Dx()/3)
-	TileEvenVertically(tiles[1:], rem)
+	insertTilesFromSeq(tiles, TiledTwoThirdsSidebar(len(tiles), r))
+}
+
+// TiledTwoThirdsSidebar is the same as [TileTwoThirdsSidebar] except
+// that it yields the successive rectangles from an iterator instead
+// of inserting them into a slice.
+func TiledTwoThirdsSidebar[T Scalar](numtiles int, r Rect[T]) iter.Seq[Rect[T]] {
+	return func(yield func(Rect[T]) bool) {
+		first, rem := hsplit(r, 2*r.Dx()/3)
+		if !yield(first) {
+			return
+		}
+
+		for t := range TiledEvenVertically(numtiles-1, rem) {
+			if !yield(t) {
+				return
+			}
+		}
+	}
 }
 
 // TileEvenVertically arranges and resizes the elements of tiles so
@@ -75,11 +112,21 @@ func TileTwoThirdsSidebar[T Scalar](tiles []Rect[T], r Rect[T]) {
 //	|        |
 //	----------
 func TileEvenVertically[T Scalar](tiles []Rect[T], r Rect[T]) {
-	size := Pt(0, r.Dy()/T(len(tiles)))
-	c, _ := vsplit(r, size.Y)
-	for i := range tiles {
-		tiles[i] = c
-		c = c.Add(size)
+	insertTilesFromSeq(tiles, TiledEvenVertically(len(tiles), r))
+}
+
+// TiledEvenVertically is the same as [TileEvenVertically] except that
+// it yields the tiles from an iterator.
+func TiledEvenVertically[T Scalar](numtiles int, r Rect[T]) iter.Seq[Rect[T]] {
+	return func(yield func(Rect[T]) bool) {
+		size := Pt(0, r.Dy()/T(numtiles))
+		c, _ := vsplit(r, size.Y)
+		for range numtiles {
+			if !yield(c) {
+				return
+			}
+			c = c.Add(size)
+		}
 	}
 }
 
@@ -96,11 +143,19 @@ func TileEvenVertically[T Scalar](tiles []Rect[T], r Rect[T]) {
 // |  |  |  |
 // ----------
 func TileEvenHorizontally[T Scalar](tiles []Rect[T], r Rect[T]) {
-	size := Pt(r.Dx()/T(len(tiles)), 0)
-	c, _ := hsplit(r, size.X)
-	for i := range tiles {
-		tiles[i] = c
-		c = c.Add(size)
+	insertTilesFromSeq(tiles, TiledEvenHorizontally(len(tiles), r))
+}
+
+func TiledEvenHorizontally[T Scalar](numtiles int, r Rect[T]) iter.Seq[Rect[T]] {
+	return func(yield func(Rect[T]) bool) {
+		size := Pt(r.Dx()/T(numtiles), 0)
+		c, _ := hsplit(r, size.X)
+		for range numtiles {
+			if !yield(c) {
+				return
+			}
+			c = c.Add(size)
+		}
 	}
 }
 
@@ -109,20 +164,32 @@ func TileEvenHorizontally[T Scalar](tiles []Rect[T], r Rect[T]) {
 // final row of the table is split evenly into at most cols columns.
 // When that number is exceeded, a new row is added below it instead.
 func TileRows[T Scalar](tiles []Rect[T], r Rect[T], cols int) {
-	rows := make([]Rect[T], len(tiles)/cols, len(tiles)/cols+1)
-	if len(tiles)%cols != 0 {
-		rows = rows[:len(tiles)/cols+1]
-	}
-	TileEvenVertically(rows, r)
+	insertTilesFromSeq(tiles, TiledRows(len(tiles), r, cols))
+}
 
-	for i, row := range rows {
-		start := i * cols
-		end := (i + 1) * cols
-		if end > len(tiles) {
-			end = len(tiles)
+// TiledRows is the same as [TileRows] except that it yields the tiles
+// from an iterator.
+func TiledRows[T Scalar](numtiles int, r Rect[T], cols int) iter.Seq[Rect[T]] {
+	return func(yield func(Rect[T]) bool) {
+		numrows := numtiles / cols
+		if numtiles%cols != 0 {
+			numrows++
 		}
+		rows := TiledEvenVertically(numrows, r)
 
-		TileEvenHorizontally(tiles[start:end], row)
+		for row := range rows {
+			if numtiles <= 0 {
+				break
+			}
+
+			numcols := min(numtiles, cols)
+			for t := range TiledEvenHorizontally(numcols, row) {
+				if !yield(t) {
+					return
+				}
+			}
+			numtiles -= numcols
+		}
 	}
 }
 
@@ -178,4 +245,10 @@ func Align[T Scalar](outer, inner Rect[T], edges Edges) Rect[T] {
 	}
 
 	return inner
+}
+
+func insertTilesFromSeq[T Scalar](tiles []Rect[T], s iter.Seq[Rect[T]]) {
+	for i, t := range xiter.Enumerate(s) {
+		tiles[i] = t
+	}
 }
