@@ -24,7 +24,7 @@ var defaultLibraryPaths = []string{
 
 func libraryPaths() iter.Seq[string] {
 	if v, ok := os.LookupEnv("XCURSOR_PATH"); ok {
-		return iter.Seq[string](xiter.StringSplit(v, string(filepath.ListSeparator)))
+		return xiter.StringSplit(v, string(filepath.ListSeparator))
 	}
 
 	return func(yield func(string) bool) {
