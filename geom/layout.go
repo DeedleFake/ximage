@@ -193,6 +193,23 @@ func TiledRows[T Scalar](numtiles int, r Rect[T], cols int) iter.Seq[Rect[T]] {
 	}
 }
 
+// VerticalStack returns an iterator that yields the rectangle
+// provided and then identical copies shifted downwards by its height
+// repeatedly, thus producing an infinite vertical stack of rectangles
+// below the first.
+func VerticalStack[T Scalar](first Rect[T]) iter.Seq[Rect[T]] {
+	return func(yield func(Rect[T]) bool) {
+		r := first.Canon()
+		shift := Pt(0, r.Dy())
+		for {
+			if !yield(first) {
+				return
+			}
+			first = first.Add(shift)
+		}
+	}
+}
+
 // ArrangeVerticalStack arranges the subsequent rectangles of rects
 // underneath the first vertically, expanding all for which it is
 // necessary so that they are all the same width including the first.
