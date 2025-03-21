@@ -2,8 +2,6 @@ package geom
 
 import (
 	"image"
-
-	"golang.org/x/exp/constraints"
 )
 
 type Point[T Scalar] struct {
@@ -43,7 +41,7 @@ func (p Point[T]) In(r Rect[T]) bool {
 		r.Min.Y <= p.Y && p.Y < r.Max.Y
 }
 
-func Mod[T constraints.Integer](p Point[T], r Rect[T]) Point[T] {
+func Mod[T Integer](p Point[T], r Rect[T]) Point[T] {
 	w, h := r.Dx(), r.Dy()
 	p = p.Sub(r.Min)
 	p.X = p.X % w

@@ -4,12 +4,16 @@
 // vastly extends their capabilities.
 package geom
 
-import "golang.org/x/exp/constraints"
-
 // Scalar is a constraint for the types that geom types and functions
 // can handle.
 type Scalar interface {
-	constraints.Integer | constraints.Float
+	~float32 | ~float64 | Integer
+}
+
+// Integer is a constraint for any integer type.
+type Integer interface {
+	~int | ~int8 | ~int16 | ~int32 | ~int64 |
+		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr
 }
 
 // Edges is a bitmask representing zero or more edges of a rectangle.
