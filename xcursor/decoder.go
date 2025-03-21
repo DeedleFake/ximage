@@ -198,7 +198,7 @@ func (d *decoder) header() []fileToc {
 	ntoc := int(d.uint32())
 
 	tocs := make([]fileToc, 0, ntoc)
-	for i := 0; i < ntoc; i++ {
+	for range ntoc {
 		tocs = append(tocs, fileToc{
 			Type:     d.uint32(),
 			Subtype:  d.uint32(),
