@@ -1,3 +1,5 @@
+//go:build go1.24
+
 package xcursor_test
 
 import (
@@ -35,6 +37,21 @@ func TestDecode(t *testing.T) {
 			require.Equal(t, xg, pg)
 			require.Equal(t, xb, pb)
 			require.Equal(t, xa, pa)
+		}
+	}
+}
+
+func BenchmarkDecode(b *testing.B) {
+	for b.Loop() {
+		theme, _ := xcursor.LoadThemeFromDir("testdata")
+		xc, _ := theme.Cursors["left_ptr"]
+		xcimg := xc.Images[xc.BestSize(24)][0].Image
+		bounds := xcimg.Bounds()
+
+		for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+			for x := bounds.Min.X; x < bounds.Max.X; x++ {
+				xcimg.At(x, y).RGBA()
+			}
 		}
 	}
 }
