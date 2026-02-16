@@ -136,9 +136,11 @@ func (t *Theme) loadDir(path string) error {
 }
 
 func loadInherits(index string) (inherits iter.Seq[string], err error) {
+	inherits = func(func(string) bool) {}
+
 	file, err := os.Open(index)
 	if err != nil {
-		return nil, err
+		return inherits, err
 	}
 	defer file.Close()
 
