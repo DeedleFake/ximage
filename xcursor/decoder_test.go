@@ -44,7 +44,7 @@ func TestDecode(t *testing.T) {
 func BenchmarkDecode(b *testing.B) {
 	for b.Loop() {
 		theme, _ := xcursor.LoadThemeFromDir("testdata")
-		xc, _ := theme.Cursors["left_ptr"]
+		xc := theme.Cursors["left_ptr"]
 		xcimg := xc.Images[xc.BestSize(24)][0].Image
 		bounds := xcimg.Bounds()
 
