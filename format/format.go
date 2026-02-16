@@ -67,10 +67,10 @@ func (formatXRGB8888) Read(data []byte) (r, g, b, a uint32) {
 	return
 }
 
-func (formatXRGB8888) Write(buf []byte, r, g, b, a uint32) {
+func (formatXRGB8888) Write(buf []byte, r, g, b, _ uint32) {
 	r = (r * 0xFF / 0xFFFF) << 16
 	g = (g * 0xFF / 0xFFFF) << 8
 	b = b * 0xFF / 0xFFFF
-	a = 0xFF << 24
+	a := uint32(0xFF << 24)
 	binary.LittleEndian.PutUint32(buf, r|g|b|a)
 }
