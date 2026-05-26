@@ -1,6 +1,7 @@
 package format
 
 import (
+	"encoding/binary"
 	"image"
 	"image/color"
 )
@@ -53,17 +54,41 @@ func (img *Image) ColorModel() color.Model { return Model{Format: img.Format} }
 
 func (img *Image) At(x, y int) color.Color {
 	if !(image.Point{x, y}.In(img.Rect)) {
-		return &Color{Format: img.Format}
+		// Return a zero value for out-of-bounds. Using color.RGBA avoids
+		// allocating a *Color for the common built-in formats.
+		return color.RGBA{}
 	}
 
-	size := img.Format.Size()
-	c := Color{Format: img.Format}
-
-	i := img.pixOffset(x, y, img.stride(size), size)
-	s := img.Pix[i : i+size : i+size]
-	copy(c.slice(size), s)
-
-	return &c
+	switch img.Format {
+	case ARGB8888:
+		i := img.pixOffset(x, y, img.stride(4), 4)
+		n := binary.LittleEndian.Uint32(img.Pix[i:])
+		r, g, b, a := argb8888Read(n)
+		return color.RGBA{
+			R: uint8(r >> 8),
+			G: uint8(g >> 8),
+			B: uint8(b >> 8),
+			A: uint8(a >> 8),
+		}
+	case XRGB8888:
+		i := img.pixOffset(x, y, img.stride(4), 4)
+		n := binary.LittleEndian.Uint32(img.Pix[i:])
+		r, g, b, _ := xrgb8888Read(n)
+		return color.RGBA{
+			R: uint8(r >> 8),
+			G: uint8(g >> 8),
+			B: uint8(b >> 8),
+			A: 0xFF,
+		}
+	default:
+		// Generic path for custom Format implementations (preserves existing behavior)
+		size := img.Format.Size()
+		c := Color{Format: img.Format}
+		i := img.pixOffset(x, y, img.stride(size), size)
+		s := img.Pix[i : i+size : i+size]
+		copy(c.slice(size), s)
+		return &c
+	}
 }
 
 func (img *Image) Stride() int {
@@ -89,9 +114,23 @@ func (img *Image) Set(x, y int, c color.Color) {
 		return
 	}
 
-	size := img.Format.Size()
-	i := img.pixOffset(x, y, img.stride(size), size)
-	c1 := img.ColorModel().Convert(c).(*Color)
-	s := img.Pix[i : i+size : i+size]
-	copy(s, c1.slice(size))
+	r, g, b, a := c.RGBA()
+
+	switch img.Format {
+	case ARGB8888:
+		i := img.pixOffset(x, y, img.stride(4), 4)
+		n := argb8888Write(r, g, b, a)
+		binary.LittleEndian.PutUint32(img.Pix[i:], n)
+	case XRGB8888:
+		i := img.pixOffset(x, y, img.stride(4), 4)
+		n := xrgb8888Write(r, g, b, a)
+		binary.LittleEndian.PutUint32(img.Pix[i:], n)
+	default:
+		// Generic path for custom Formats (preserves existing allocation behavior)
+		size := img.Format.Size()
+		i := img.pixOffset(x, y, img.stride(size), size)
+		c1 := img.ColorModel().Convert(c).(*Color)
+		s := img.Pix[i : i+size : i+size]
+		copy(s, c1.slice(size))
+	}
 }
