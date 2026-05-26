@@ -32,7 +32,7 @@ func (formatARGB8888) Size() int { return 4 }
 
 func (formatARGB8888) Read(data []byte) (r, g, b, a uint32) {
 	n := binary.LittleEndian.Uint32(data)
-	a = (n >> 24 * 0xFFFF / 0xFF)
+	a = (n >> 24) * 0xFFFF / 0xFF
 	r = (n >> 16 & 0xFF) * a / 0xFF
 	g = (n >> 8 & 0xFF) * a / 0xFF
 	b = (n & 0xFF) * a / 0xFF
@@ -41,7 +41,7 @@ func (formatARGB8888) Read(data []byte) (r, g, b, a uint32) {
 
 func (formatARGB8888) Write(buf []byte, r, g, b, a uint32) {
 	if a == 0 {
-		copy(buf, []byte{0, 0, 0, 0})
+		binary.LittleEndian.PutUint32(buf, 0)
 		return
 	}
 

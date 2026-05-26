@@ -56,14 +56,20 @@ func (img *Image) At(x, y int) color.Color {
 		return &Color{Format: img.Format}
 	}
 
-	size := img.Format.Size()
-	c := Color{Format: img.Format}
-
-	i := img.pixOffset(x, y, img.stride(size), size)
-	s := img.Pix[i : i+size : i+size]
-	copy(c.slice(size), s)
-
-	return &c
+	switch img.Format {
+	case ARGB8888, XRGB8888:
+		i := img.pixOffset(x, y, img.stride(4), 4)
+		c := Color{Format: img.Format}
+		copy(c.Data[:], img.Pix[i:])
+		return &c
+	default:
+		size := img.Format.Size()
+		c := Color{Format: img.Format}
+		i := img.pixOffset(x, y, img.stride(size), size)
+		s := img.Pix[i : i+size : i+size]
+		copy(c.slice(size), s)
+		return &c
+	}
 }
 
 func (img *Image) Stride() int {
@@ -89,9 +95,20 @@ func (img *Image) Set(x, y int, c color.Color) {
 		return
 	}
 
-	size := img.Format.Size()
-	i := img.pixOffset(x, y, img.stride(size), size)
-	c1 := img.ColorModel().Convert(c).(*Color)
-	s := img.Pix[i : i+size : i+size]
-	copy(s, c1.slice(size))
+	r, g, b, a := c.RGBA()
+
+	switch img.Format {
+	case ARGB8888:
+		i := img.pixOffset(x, y, img.stride(4), 4)
+		ARGB8888.Write(img.Pix[i:], r, g, b, a)
+	case XRGB8888:
+		i := img.pixOffset(x, y, img.stride(4), 4)
+		XRGB8888.Write(img.Pix[i:], r, g, b, a)
+	default:
+		size := img.Format.Size()
+		i := img.pixOffset(x, y, img.stride(size), size)
+		c1 := img.ColorModel().Convert(c).(*Color)
+		s := img.Pix[i : i+size : i+size]
+		copy(s, c1.slice(size))
+	}
 }
