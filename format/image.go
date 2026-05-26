@@ -1,7 +1,6 @@
 package format
 
 import (
-	"encoding/binary"
 	"image"
 	"image/color"
 )
@@ -54,34 +53,16 @@ func (img *Image) ColorModel() color.Model { return Model{Format: img.Format} }
 
 func (img *Image) At(x, y int) color.Color {
 	if !(image.Point{x, y}.In(img.Rect)) {
-		// Return a zero value for out-of-bounds. Using color.RGBA avoids
-		// allocating a *Color for the common built-in formats.
-		return color.RGBA{}
+		return &Color{Format: img.Format}
 	}
 
 	switch img.Format {
-	case ARGB8888:
+	case ARGB8888, XRGB8888:
 		i := img.pixOffset(x, y, img.stride(4), 4)
-		n := binary.LittleEndian.Uint32(img.Pix[i:])
-		r, g, b, a := argb8888Read(n)
-		return color.RGBA{
-			R: uint8(r >> 8),
-			G: uint8(g >> 8),
-			B: uint8(b >> 8),
-			A: uint8(a >> 8),
-		}
-	case XRGB8888:
-		i := img.pixOffset(x, y, img.stride(4), 4)
-		n := binary.LittleEndian.Uint32(img.Pix[i:])
-		r, g, b, _ := xrgb8888Read(n)
-		return color.RGBA{
-			R: uint8(r >> 8),
-			G: uint8(g >> 8),
-			B: uint8(b >> 8),
-			A: 0xFF,
-		}
+		c := Color{Format: img.Format}
+		copy(c.Data[:], img.Pix[i:])
+		return &c
 	default:
-		// Generic path for custom Format implementations (preserves existing behavior)
 		size := img.Format.Size()
 		c := Color{Format: img.Format}
 		i := img.pixOffset(x, y, img.stride(size), size)
@@ -119,14 +100,11 @@ func (img *Image) Set(x, y int, c color.Color) {
 	switch img.Format {
 	case ARGB8888:
 		i := img.pixOffset(x, y, img.stride(4), 4)
-		n := argb8888Write(r, g, b, a)
-		binary.LittleEndian.PutUint32(img.Pix[i:], n)
+		ARGB8888.Write(img.Pix[i:], r, g, b, a)
 	case XRGB8888:
 		i := img.pixOffset(x, y, img.stride(4), 4)
-		n := xrgb8888Write(r, g, b, a)
-		binary.LittleEndian.PutUint32(img.Pix[i:], n)
+		XRGB8888.Write(img.Pix[i:], r, g, b, a)
 	default:
-		// Generic path for custom Formats (preserves existing allocation behavior)
 		size := img.Format.Size()
 		i := img.pixOffset(x, y, img.stride(size), size)
 		c1 := img.ColorModel().Convert(c).(*Color)

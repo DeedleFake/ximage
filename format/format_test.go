@@ -24,7 +24,7 @@ func TestFormat(t *testing.T) {
 func TestFormatAlphaRoundtrip(t *testing.T) {
 	// Only values that survive the 16-bit → 8-bit → 16-bit conversion exactly.
 	cases := []struct {
-		name     string
+		name       string
 		r, g, b, a uint32
 	}{
 		{"full alpha", 0x1111, 0x2222, 0x3333, 0xFFFF},
@@ -45,10 +45,6 @@ func TestFormatAlphaRoundtrip(t *testing.T) {
 		})
 	}
 }
-
-// TestFormatAlphaScaling directly exercises the alpha scaling expression
-// for every possible 8-bit alpha value. The original buggy expression
-// (n >> 24 * 0xFFFF / 0xFF) would have returned 0 for every non-zero byte.
 func TestFormatAlphaScaling(t *testing.T) {
 	for alphaByte := 0; alphaByte <= 0xff; alphaByte++ {
 		data := []byte{0x00, 0x00, 0x00, byte(alphaByte)}
@@ -57,10 +53,6 @@ func TestFormatAlphaScaling(t *testing.T) {
 		require.Equal(t, expected, a, "alpha byte 0x%02x", alphaByte)
 	}
 }
-
-// BenchmarkImageAt measures full-image scan performance for the two
-// built-in formats. The fast paths should show 0 or 1 allocs/op
-// (the unavoidable interface boxing of the returned color.Color).
 func BenchmarkImageAt_ARGB8888(b *testing.B) {
 	const w, h = 1024, 1024
 	img := &format.Image{
@@ -73,11 +65,11 @@ func BenchmarkImageAt_ARGB8888(b *testing.B) {
 	}
 
 	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+
+	for b.Loop() {
 		var sum uint64
-		for y := 0; y < h; y++ {
-			for x := 0; x < w; x++ {
+		for y := range h {
+			for x := range w {
 				c := img.At(x, y)
 				r, g, b, a := c.RGBA()
 				sum += uint64(r + g + b + a)
@@ -99,11 +91,11 @@ func BenchmarkImageAt_XRGB8888(b *testing.B) {
 	}
 
 	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+
+	for b.Loop() {
 		var sum uint64
-		for y := 0; y < h; y++ {
-			for x := 0; x < w; x++ {
+		for y := range h {
+			for x := range w {
 				c := img.At(x, y)
 				r, g, b, a := c.RGBA()
 				sum += uint64(r + g + b + a)
@@ -113,8 +105,6 @@ func BenchmarkImageAt_XRGB8888(b *testing.B) {
 	}
 }
 
-// BenchmarkImageSet measures Set performance for ARGB8888.
-// A smaller size is used because Set is more expensive than At.
 func BenchmarkImageSet_ARGB8888(b *testing.B) {
 	const w, h = 256, 256
 	img := &format.Image{
@@ -125,10 +115,10 @@ func BenchmarkImageSet_ARGB8888(b *testing.B) {
 	c := image.NewUniform(color.RGBA{R: 0x80, G: 0x40, B: 0x20, A: 0xFF}).At(0, 0)
 
 	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		for y := 0; y < h; y++ {
-			for x := 0; x < w; x++ {
+
+	for b.Loop() {
+		for y := range h {
+			for x := range w {
 				img.Set(x, y, c)
 			}
 		}
